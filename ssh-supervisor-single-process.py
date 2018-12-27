@@ -3,6 +3,7 @@
 
 import os
 import time
+
 import paramiko
 
 
@@ -27,18 +28,20 @@ def ssh_run(ip='127.0.0.1', port=22, username='root', password='', cmd=''):
         error_write(ip, '远程主机没有反应，连接失败')
         return
 
-    # 分割命令串，返回命令的（有序）列表
-    cmds = cmd.split(';')
-    for cmdi in cmds:
-        stdin, stdout, stderr = ssh.exec_command(cmdi)
+    stdin, stdout, stderr = ssh.exec_command(cmd)
 
-        # 如果执行有错误 #
-        if stderr.read().decode('utf-8') != '':
-            # 错误信息写入文件
-            error_write(ip, stderr.read().decode('utf-8'))
-        else:
-            # 返回结果信息写入文件
-            content_write(ip, stdout.read().decode('utf-8'))
+    err = stderr.read().decode('utf-8')
+    out = stdout.read().decode('utf-8')
+    # 如果执行有错误 #
+    print(err)
+    if err != '':
+        # 错误信息写入文件
+        error_write(ip, err)
+        if out != '':
+            content_write(ip, out)
+    else:
+        # 返回结果信息写入文件
+        content_write(ip, out)
 
     # 断开连接
     ssh.close()
@@ -48,6 +51,7 @@ def error_write(ip, message):
     """
     错误信息的保存
     """
+    # 注意：如果要用t在文件路径中的话，Windows上会报错，需要把其中的：替换成其他非路径分隔符，如_
     t = time.strftime('%Y-%m-%d %H:%M:%S')
 
     with open(os.path.join('error', '.'.join(['error', ip, 'txt'])), 'a', encoding='utf-8') as f:
